@@ -1,0 +1,24 @@
+{
+  "name": "restaurant-marketing-workers",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers backend for Restaurant Marketing SaaS",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "db:create": "wrangler d1 create restaurant-marketing-db",
+    "db:execute": "wrangler d1 execute restaurant-marketing-db --file=../database/schema.sql",
+    "db:query": "wrangler d1 execute restaurant-marketing-db --command"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.22.0"
+  }
+}

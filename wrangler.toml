@@ -1,0 +1,32 @@
+name = "restaurant-marketing-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "restaurant-marketing-db"
+database_id = "4f54b3b0-fd08-4dcf-b1d6-531dc4fbf0f7" # Will be filled after creating the database
+
+# Environment Variables (use .dev.vars for local development)
+[vars]
+ENVIRONMENT = "production"
+JWT_SECRET = "MyRestaurantSAAS"
+ENCRYPTION_MASTER_KEY = "MyRestaurantSAAS"
+
+# CORS Settings
+[env.production]
+name = "restaurant-marketing-api"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "restaurant-marketing-db"
+database_id = "4f54b3b0-fd08-4dcf-b1d6-531dc4fbf0f7"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+JWT_SECRET = "MyRestaurantSAAS"
+ENCRYPTION_MASTER_KEY = "MyRestaurantSAAS"
+
+[env.development]
+name = "restaurant-marketing-api-dev"

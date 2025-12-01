@@ -1,0 +1,9 @@
+# Cloudflare Workers Environment Variables (for local development)
+# Copy this file to .dev.vars and fill in your values
+
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+ENCRYPTION_MASTER_KEY=your-32-character-encryption-key-change-this
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=your-twilio-phone-number
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
