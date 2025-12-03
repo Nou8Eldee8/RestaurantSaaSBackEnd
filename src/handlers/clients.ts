@@ -172,7 +172,7 @@ export async function addClient(c: Context) {
                 .bind(
                     user.organizationId,
                     encrypted.encrypted, // combined ciphertext
-                    null,               // legacy column unused
+                    '',                 // empty string for legacy column (NOT NULL constraint)
                     encrypted.iv,
                     ticketAmount
                 )

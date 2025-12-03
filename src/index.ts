@@ -15,6 +15,8 @@ import { exportClients } from './handlers/export';
 import { sendBulkMessage, getCampaigns } from './handlers/messaging';
 import { getStats } from './handlers/stats';
 import { getBranchAnalytics, getBranchRevenueComparison, getBranchClientMetrics, getBranchVisitTrends } from './handlers/branches';
+import { verifyWhatsAppWebhook, handleWhatsAppWebhook } from './handlers/webhooks';
+import { testWhatsAppMessage } from './handlers/test';
 
 // Middleware
 import { authMiddleware, adminMiddleware } from './lib/middleware';
@@ -28,6 +30,9 @@ export interface Env {
     TWILIO_AUTH_TOKEN?: string;
     TWILIO_PHONE_NUMBER?: string;
     TWILIO_WHATSAPP_NUMBER?: string;
+    WHATSAPP_VERIFY_TOKEN: string;
+    WHATSAPP_WEBHOOK_SECRET?: string;
+    ENCRYPTION_KEY: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -55,6 +60,13 @@ app.get('/', (c) => {
 // Authentication
 app.post('/api/auth/register', register);
 app.post('/api/auth/login', login);
+
+// WhatsApp Webhooks (Public - No Auth)
+app.get('/api/webhooks/whatsapp', (c) => verifyWhatsAppWebhook(c.req.raw, c.env));
+app.post('/api/webhooks/whatsapp', (c) => handleWhatsAppWebhook(c.req.raw, c.env));
+
+// Test endpoint for WhatsApp (Public - for testing only, remove in production)
+app.post('/api/test/whatsapp', testWhatsAppMessage);
 
 // ============================================
 // Protected Routes (Authentication Required)

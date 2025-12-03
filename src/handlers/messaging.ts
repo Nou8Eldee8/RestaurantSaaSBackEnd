@@ -1,11 +1,12 @@
 /**
- * Messaging handler (Twilio SMS/WhatsApp)
- * Placeholder for Twilio integration
+ * Messaging handler (WhatsApp Business API)
+ * Sends messages using Meta's WhatsApp Business API
  */
 
 import { Context } from 'hono';
 import { getUser } from '../lib/middleware';
-import { decryptClientData } from '../lib/encryption';
+import { decryptPayload } from '../lib/encryption';
+import { sendBulkWhatsAppMessages } from '../lib/whatsapp';
 
 /**
  * Send bulk messages
@@ -25,6 +26,11 @@ export async function sendBulkMessage(c: Context) {
             return c.json({ error: 'Invalid message type' }, 400);
         }
 
+        // Only WhatsApp is supported for now
+        if (messageType !== 'whatsapp') {
+            return c.json({ error: 'Only WhatsApp messaging is currently supported' }, 400);
+        }
+
         const db = c.env.DB;
         const masterKey = c.env.ENCRYPTION_MASTER_KEY;
 
@@ -41,14 +47,18 @@ export async function sendBulkMessage(c: Context) {
                 `Campaign ${new Date().toISOString()}`,
                 messageType,
                 messageContent,
-                'draft',
+                'sending',
                 user.userId
             )
-            .first();
+            .first() as { id: number } | null;
 
-        // Get clients to message
+        if (!campaign) {
+            return c.json({ error: 'Failed to create campaign' }, 500);
+        }
+
+        // Get clients to message - USE encrypted_name NOT encrypted_phone
         let query = `
-      SELECT id, encrypted_phone, encryption_iv
+      SELECT id, encrypted_name, encryption_iv
       FROM clients
       WHERE organization_id = ? AND deleted_at IS NULL
     `;
@@ -59,43 +69,83 @@ export async function sendBulkMessage(c: Context) {
             params.push(...clientIds);
         }
 
-        const clients = await db.prepare(query).bind(...params).all();
+        const clients = (await db.prepare(query).bind(...params).all()) as {
+            results: {
+                id: number;
+                encrypted_name: string;
+                encryption_iv: string;
+            }[];
+        };
 
-        // Decrypt phone numbers
-        const phoneNumbers = await Promise.all(
-            clients.results.map(async (client: any) => {
-                const { phone } = await decryptClientData(
-                    'temp',
-                    client.encrypted_phone,
+        // Decrypt phone numbers and prepare recipients
+        const recipients = await Promise.all(
+            clients.results.map(async (client) => {
+                const decryptedData = await decryptPayload(
+                    client.encrypted_name,
                     client.encryption_iv,
                     masterKey,
                     user.organizationId
                 );
-                return phone;
+
+                // Log decrypted data for debugging
+                console.log('Decrypted client data:', {
+                    id: client.id,
+                    phone: decryptedData.phone,
+                    name: decryptedData.name
+                });
+
+                return {
+                    phone: decryptedData.phone,
+                    name: decryptedData.name || 'Customer'
+                };
             })
         );
 
         // Update campaign with recipient count
         await db
-            .prepare('UPDATE messaging_campaigns SET recipient_count = ?, status = ? WHERE id = ?')
-            .bind(phoneNumbers.length, 'completed', campaign.id)
+            .prepare('UPDATE messaging_campaigns SET recipient_count = ? WHERE id = ?')
+            .bind(recipients.length, campaign.id)
             .run();
 
-        // TODO: Integrate with Twilio API
-        // For now, return success with phone numbers
+        // Send WhatsApp messages
+        const result = await sendBulkWhatsAppMessages(
+            recipients,
+            messageContent,
+            user.organizationId,
+            c.env
+        );
+
+        // Update campaign with results
+        await db
+            .prepare(`
+        UPDATE messaging_campaigns 
+        SET sent_count = ?, failed_count = ?, status = ?, completed_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+            .bind(
+                result.totalSent,
+                result.totalFailed,
+                result.totalFailed === 0 ? 'completed' : 'failed',
+                campaign.id
+            )
+            .run();
+
         return c.json({
             success: true,
             campaignId: campaign.id,
-            recipientCount: phoneNumbers.length,
-            message: 'Campaign created. Twilio integration pending.',
-            // In production, don't return phone numbers
-            debug: {
-                phoneNumbers: phoneNumbers.slice(0, 5), // Show first 5 for testing
-            },
+            recipientCount: recipients.length,
+            sentCount: result.totalSent,
+            failedCount: result.totalFailed,
+            message: `Successfully sent ${result.totalSent} messages, ${result.totalFailed} failed`,
+            results: result.results
         });
+
     } catch (error) {
         console.error('Send bulk message error:', error);
-        return c.json({ error: 'Failed to send messages' }, 500);
+        return c.json({
+            error: 'Failed to send messages',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        }, 500);
     }
 }
 

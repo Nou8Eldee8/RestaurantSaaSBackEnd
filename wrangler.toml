@@ -6,13 +6,15 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "restaurant-marketing-db"
-database_id = "4f54b3b0-fd08-4dcf-b1d6-531dc4fbf0f7" # Will be filled after creating the database
+database_id = "4f54b3b0-fd08-4dcf-b1d6-531dc4fbf0f7"
 
 # Environment Variables (use .dev.vars for local development)
 [vars]
 ENVIRONMENT = "production"
 JWT_SECRET = "MyRestaurantSAAS"
 ENCRYPTION_MASTER_KEY = "MyRestaurantSAAS"
+WHATSAPP_VERIFY_TOKEN = "NOURSAAS"
+WHATSAPP_WEBHOOK_SECRET = "NOURSAAS"
 
 # CORS Settings
 [env.production]
@@ -27,6 +29,8 @@ database_id = "4f54b3b0-fd08-4dcf-b1d6-531dc4fbf0f7"
 ENVIRONMENT = "production"
 JWT_SECRET = "MyRestaurantSAAS"
 ENCRYPTION_MASTER_KEY = "MyRestaurantSAAS"
+WHATSAPP_VERIFY_TOKEN = "NOURSAAS"
+WHATSAPP_WEBHOOK_SECRET = "NOURSAAS"
 
 [env.development]
 name = "restaurant-marketing-api-dev"
